@@ -1148,6 +1148,15 @@ describe("Control4 glue", () => {
             });
         });
 
+        it("exposes no effect or power-on behavior select", () => {
+            const exposes = prepareDefinition(definition).exposes as unknown as (device: KeyValue, options: KeyValue) => {name?: string}[];
+            for (const modelID of ["C4-APD120", "C4-SW120277"]) {
+                const names = exposes({modelID}, {}).map((expose) => expose.name);
+                expect(names).not.toContain("effect");
+                expect(names).not.toContain("power_on_behavior");
+            }
+        });
+
         it("definition model and vendor are stable", () => {
             expect(definition.model).toBe("C4-Zigbee");
             expect(definition.vendor).toBe("Control4");

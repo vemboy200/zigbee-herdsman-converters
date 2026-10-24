@@ -22,7 +22,10 @@ async function readLoose(ep: Zh.Endpoint, cluster: string | number, attrs: (stri
 // On/off-only models (by reported identity) get a light without brightness;
 // everything else, including devices whose identity isn't known yet, dims.
 function c4Light(): ModernExtend {
-    const light = m.light({configureReporting: false});
+    // No effect or power-on behavior selects: no Control4 device has
+    // reported a power-on behavior, and the trigger effect isn't known to
+    // do anything on them.
+    const light = m.light({configureReporting: false, effect: false, powerOnBehavior: false});
     const [dimmable, ...rest] = light.exposes as Expose[];
     const onOff = e.light();
     return {
