@@ -112,7 +112,7 @@ const fzControl4Response = {
             delete result.c4_response;
             delete result.c4_response_ep;
 
-            c4.scheduleC4LoadStatePublish(msg.device, loadStatus.level, publish);
+            c4.scheduleC4LoadStatePublish(msg.device, loadStatus.level, publish, c4.parseLoadTelemetry(text));
             return result;
         }
 
@@ -380,6 +380,16 @@ const tzControl4VerifySlot = {
     },
 } satisfies Tz.Converter;
 
+// Read the whole dimming table: {"c4_read_dimming": ""} publishes c4_tv_<param>.
+const tzControl4ReadDimming = {
+    key: ["c4_read_dimming"],
+    convertSet: async (entity, key, value, meta) => {
+        if (!meta.device) throw new Error("c4_read_dimming requires a device");
+        // Publish directly, as c4_verify_slot does: Z2M doesn't publish state returned from this command.
+        meta.publish(await c4.readDimmingTable(meta.device));
+    },
+} satisfies Tz.Converter;
+
 // The C4-V-ROSW120 never confirms a command (no default response, no
 // reports), so read the state back to publish what the relay actually did.
 // If the read fails, the optimistic state stays until the next poll.
@@ -423,7 +433,16 @@ export const definitions: DefinitionWithExtend[] = [
         extend: [c4Light()],
         exposes: [e.action([...c4.ACTION_VALUES])],
         fromZigbee: [fzControl4Response, fzControl4Identity],
-        toZigbee: [tzControl4Led, tzControl4Cmd, tzControl4Query, tzControl4ZclRead, tzControl4Probe, tzControl4Detect, tzControl4VerifySlot],
+        toZigbee: [
+            tzControl4Led,
+            tzControl4Cmd,
+            tzControl4Query,
+            tzControl4ZclRead,
+            tzControl4Probe,
+            tzControl4Detect,
+            tzControl4VerifySlot,
+            tzControl4ReadDimming,
+        ],
         meta: {
             disableDefaultResponse: true,
             // Z2M offers every light without color as "brightness", so turn
