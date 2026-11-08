@@ -69,7 +69,16 @@ export const PADDLE_WIRE_IDS: Record<number, string> = {
 export const PADDLE_TARGETS: readonly string[] = ["paddle_up", "paddle_down"];
 
 function actionVariants(prefix: string): string[] {
-    return [`${prefix}_press`, `${prefix}_scene`, `${prefix}_click_1`, `${prefix}_click_2`, `${prefix}_click_3`, `${prefix}_click_4`];
+    return [
+        `${prefix}_press`,
+        `${prefix}_scene`,
+        `${prefix}_click_1`,
+        `${prefix}_click_2`,
+        `${prefix}_click_3`,
+        `${prefix}_click_4`,
+        `${prefix}_hold`,
+        `${prefix}_hold_release`,
+    ];
 }
 
 /** Action values for button and paddle events (the frozen MQTT enum contract). */
@@ -200,14 +209,14 @@ export interface C4ButtonTarget {
 
 export interface C4ButtonEvent {
     action: string;
-    type: "press" | "click" | "scene";
+    type: "press" | "click" | "scene" | "hold" | "hold_release";
     buttonId?: number;
     paddle?: string;
     clickCount?: number;
 }
 
 /**
- * Map a bp/cc/sc wire id: 0x00-0x05 → button_1..6, 0x07/0x08 → paddle halves.
+ * Map a bp/cc/sc/hc/he wire id: 0x00-0x05 → button_1..6, 0x07/0x08 → paddle halves.
  * Other ids keep the legacy button_(N+1) mapping but are logged once.
  */
 export function resolveButtonTarget(wireIdHex: string): C4ButtonTarget | null {
@@ -254,6 +263,19 @@ export function parseButtonEvent(text: string): C4ButtonEvent | null {
         const target = resolveButtonTarget(scMatch[1]);
         if (!target) return null;
         return {action: `${target.prefix}_scene`, ...targetIdentity(target), type: "scene"};
+    }
+
+    // Hold: a press held past ~400 ms sends 0t<seq> sa c4.dmx.hc <btn>, then
+    // repeats it about once a second while held; release sends c4.dmx.he <btn>.
+    // A short press sends sc (scene) on release instead, never hc.
+    const holdMatch = text.match(/^0t\w+ sa c4\.dmx\.h([ce]) (\w+)/);
+    if (holdMatch) {
+        const target = resolveButtonTarget(holdMatch[2]);
+        if (!target) return null;
+        if (holdMatch[1] === "c") {
+            return {action: `${target.prefix}_hold`, ...targetIdentity(target), type: "hold"};
+        }
+        return {action: `${target.prefix}_hold_release`, ...targetIdentity(target), type: "hold_release"};
     }
 
     return null;

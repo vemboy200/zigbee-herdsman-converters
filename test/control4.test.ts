@@ -73,8 +73,8 @@ describe("Control4 protocol", () => {
             expect(LED_MODES.off).toBe("04");
         });
 
-        it("ACTION_VALUES has 48 entries (6 buttons + 2 paddles x 6 action types)", () => {
-            expect(ACTION_VALUES).toHaveLength(48);
+        it("ACTION_VALUES has 64 entries (6 buttons + 2 paddles x 8 action types)", () => {
+            expect(ACTION_VALUES).toHaveLength(64);
             expect(ACTION_VALUES).toContain("button_1_press");
             expect(ACTION_VALUES).toContain("button_6_click_4");
         });
@@ -87,6 +87,8 @@ describe("Control4 protocol", () => {
                 expect(ACTION_VALUES).toContain(`${paddle}_click_2`);
                 expect(ACTION_VALUES).toContain(`${paddle}_click_3`);
                 expect(ACTION_VALUES).toContain(`${paddle}_click_4`);
+                expect(ACTION_VALUES).toContain(`${paddle}_hold`);
+                expect(ACTION_VALUES).toContain(`${paddle}_hold_release`);
             }
         });
 
@@ -456,6 +458,27 @@ describe("Control4 protocol", () => {
 
         it("parses scene change (sc): wire 02 becomes button 3", () => {
             expect(parseButtonEvent("0t0001 sa c4.dmx.sc 02")).toEqual({action: "button_3_scene", buttonId: 3, type: "scene"});
+        });
+
+        it("parses hold (hc) as button_N_hold", () => {
+            expect(parseButtonEvent("0t1153 sa c4.dmx.hc 01")).toEqual({action: "button_2_hold", buttonId: 2, type: "hold"});
+        });
+
+        it("parses hold end (he) as button_N_hold_release", () => {
+            expect(parseButtonEvent("0t1157 sa c4.dmx.he 01")).toEqual({action: "button_2_hold_release", buttonId: 2, type: "hold_release"});
+        });
+
+        it("parses hold on a paddle half", () => {
+            expect(parseButtonEvent("0t0001 sa c4.dmx.hc 07")).toEqual({action: "paddle_up_hold", paddle: "paddle_up", type: "hold"});
+            expect(parseButtonEvent("0t0001 sa c4.dmx.he 08")).toEqual({
+                action: "paddle_down_hold_release",
+                paddle: "paddle_down",
+                type: "hold_release",
+            });
+        });
+
+        it("ignores other h* messages", () => {
+            expect(parseButtonEvent("0t0001 sa c4.dmx.hx 01")).toBeNull();
         });
 
         it("returns null for response (0r)", () => {

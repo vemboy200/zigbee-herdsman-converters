@@ -935,7 +935,7 @@ describe("Control4 glue", () => {
     describe("Frozen MQTT contract", () => {
         const definition = definitions[0];
 
-        it("action enum carries exactly the 48 frozen values", () => {
+        it("action enum carries exactly the 64 frozen values", () => {
             const expected: string[] = [];
             for (let n = 1; n <= 6; n++) {
                 expected.push(
@@ -945,6 +945,8 @@ describe("Control4 glue", () => {
                     `button_${n}_click_2`,
                     `button_${n}_click_3`,
                     `button_${n}_click_4`,
+                    `button_${n}_hold`,
+                    `button_${n}_hold_release`,
                 );
             }
             for (const paddle of ["paddle_up", "paddle_down"]) {
@@ -955,6 +957,8 @@ describe("Control4 glue", () => {
                     `${paddle}_click_2`,
                     `${paddle}_click_3`,
                     `${paddle}_click_4`,
+                    `${paddle}_hold`,
+                    `${paddle}_hold_release`,
                 );
             }
             expect([...ACTION_VALUES].sort()).toEqual(expected.sort());
